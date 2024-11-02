@@ -2,10 +2,11 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import mlflow
 import pandas as pd
+import pickle
 
-# Charger le modèle MLflow (assure-toi que le chemin est correct)
-model_uri = "models:/best_logistic_regression_model/production"
-model = mlflow.pyfunc.load_model(model_uri)
+# Charger le modèle avec pickle depuis le dossier models
+with open("models/logistic_regression_model.pkl", "rb") as f:
+    model = pickle.load(f)
 
 # Créer l'application FastAPI
 app = FastAPI()
