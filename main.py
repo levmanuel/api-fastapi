@@ -1,6 +1,8 @@
-from fastapi import Security, Depends, FastAPI, HTTPException, status
+from fastapi import Security, Depends, FastAPI, HTTPException, status, Body
 from fastapi.security.api_key import APIKeyHeader, APIKey
+from typing import List
 from pydantic import BaseModel
+import numpy as np
 import pandas as pd
 import pickle
 from pathlib import Path
@@ -10,37 +12,18 @@ API_KEY = os.getenv("API_KEY", "0000")  # 🔐 En prod, défini via Railway
 API_KEY_NAME = "x-api-key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
-class BreastCancerInput(BaseModel):
-    mean_radius: float
-    mean_texture: float
-    mean_perimeter: float
-    mean_area: float
-    mean_smoothness: float
-    mean_compactness: float
-    mean_concavity: float
-    mean_concave_points: float
-    mean_symmetry: float
-    mean_fractal_dimension: float
-    radius_error: float
-    texture_error: float
-    perimeter_error: float
-    area_error: float
-    smoothness_error: float
-    compactness_error: float
-    concavity_error: float
-    concave_points_error: float
-    symmetry_error: float
-    fractal_dimension_error: float
-    worst_radius: float
-    worst_texture: float
-    worst_perimeter: float
-    worst_area: float
-    worst_smoothness: float
-    worst_compactness: float
-    worst_concavity: float
-    worst_concave_points: float
-    worst_symmetry: float
-    worst_fractal_dimension: float
+class IrisInput(BaseModel):
+    features: List[List[float]]
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "features": [
+                    [5.1, 3.5, 1.4, 0.2],
+                    [6.2, 2.8, 4.8, 1.8]
+                ]
+            }
+        }
 
 # Fonction de vérification de la clé
 async def get_api_key(api_key_header: str = Security(api_key_header)) -> str:
@@ -52,6 +35,8 @@ async def get_api_key(api_key_header: str = Security(api_key_header)) -> str:
     )
 
 app = FastAPI()
+
+base_dir = Path(__file__).resolve().parent
 
 @app.get("/")
 def read_root():
@@ -72,31 +57,32 @@ async def load_data():
 
     df = pd.read_csv(csv_path)
     return df.head().fillna("").to_dict(orient="records")
-
-@app.post("/predict", dependencies=[Depends(get_api_key)])
-async def predict(data: BreastCancerInput):
+    
+@app.post(
+    "/predict",
+    summary="Prédire l'espèce d'iris",
+    description="Fournit une ou plusieurs observations d'iris pour obtenir la prédiction de leur espèce."
+)
+async def predict(iris: IrisInput = Body(..., example={"features": [[5.1, 3.5, 1.4, 0.2],[6.2, 2.8, 4.8, 1.8]]})):
     try:
-        # Localiser le modèle
+        class_names = {0: "setosa", 1: "versicolor", 2: "virginica"}
         base_dir = Path(__file__).resolve().parent
         model_path = base_dir / "models" / "best_logistic_regression_model.pkl"
-        
+
         if not model_path.exists():
             raise HTTPException(status_code=500, detail="Modèle introuvable")
-
-        # Charger le modèle
+        
         with model_path.open("rb") as f:
             model = pickle.load(f)
-
-        # Créer un DataFrame avec les données d'entrée
-        input_data = pd.DataFrame([data.dict()])
-
-        # Effectuer la prédiction
-        prediction = model.predict(input_data)[0]
-
-        return {
-            "prediction": int(prediction),
-            "diagnosis": "malignant" if prediction == 1 else "benign"
-        }
+        
+        X_input = np.array(iris.features)
+        if X_input.ndim == 1:
+            X_input = X_input.reshape(1, -1)
+        if X_input.shape[1] != 4:
+            return {"error": "Chaque observation doit contenir exactement 4 caractéristiques."}
+        predictions = model.predict(X_input)
+        results = [class_names[pred] for pred in predictions]
+        return {"predictions": results}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur lors de la prédiction : {str(e)}")
