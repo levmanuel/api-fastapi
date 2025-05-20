@@ -67,7 +67,7 @@ async def predict(iris: IrisInput = Body(..., example={"features": [[5.1, 3.5, 1
     try:
         class_names = {0: "setosa", 1: "versicolor", 2: "virginica"}
         base_dir = Path(__file__).resolve().parent
-        model_path = base_dir / "models" / "best_logistic_regression_model.pkl"
+        model_path = base_dir / "models" / "iris_model.pkl"
 
         if not model_path.exists():
             raise HTTPException(status_code=500, detail="Modèle introuvable")
