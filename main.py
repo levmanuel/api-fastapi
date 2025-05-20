@@ -1,20 +1,39 @@
-from fastapi import FastAPI
+from fastapi import Security, Depends, FastAPI, HTTPException, status
+from fastapi.security.api_key import APIKeyHeader, APIKey
 from pydantic import BaseModel
 import pandas as pd
 import pickle
 from pathlib import Path
+import os
 
-# base_dir = Path(__file__).resolve().parent
-# model_path = base_dir / "models" / "logistic_regression_model.pkl"
-# with model_path.open("rb") as f:
-#     model = pickle.load(f)
+API_KEY = os.getenv("API_KEY", "0000")  # 🔐 En prod, défini via Railway
+API_KEY_NAME = "x-api-key"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
-# Créer l'application FastAPI
+# Fonction de vérification de la clé
+async def get_api_key(api_key_header: str = Security(api_key_header)) -> str:
+    if api_key_header == API_KEY:
+        return api_key_header
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or missing API Key",
+    )
+
 app = FastAPI()
 
 @app.get("/")
 def read_root():
     return {"message": "Hello from Railway"}
+
+# Endpoint protégé
+@app.get("/auth", dependencies=[Depends(get_api_key)])
+async def read_root():
+    return {"message": "Hello from Railway — secured with API Key"}
+
+# base_dir = Path(__file__).resolve().parent
+# model_path = base_dir / "models" / "logistic_regression_model.pkl"
+# with model_path.open("rb") as f:
+#     model = pickle.load(f)
 
 # # Modèle de données complet pour le dataset Breast Cancer
 # class BreastCancerInput(BaseModel):
