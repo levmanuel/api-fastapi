@@ -30,6 +30,22 @@ def read_root():
 async def read_root():
     return {"message": "Hello from Railway — secured with API Key"}
 
+# 📈 Endpoint de prédiction
+@app.get("/predict", dependencies=[Depends(get_api_key)])
+async def predict():
+    # 📁 Chemin vers le fichier CSV dans /models
+    base_dir = Path(__file__).resolve().parent
+    csv_path = base_dir / "models" / "data.csv"
+
+    if not csv_path.exists():
+        raise HTTPException(status_code=404, detail="Fichier CSV introuvable")
+
+    # 📊 Lire le fichier CSV avec pandas
+    df = pd.read_csv(csv_path)
+
+    # 🧪 Retourner les 5 premières lignes
+    return df.head().to_dict(orient="records")
+
 # base_dir = Path(__file__).resolve().parent
 # model_path = base_dir / "models" / "logistic_regression_model.pkl"
 # with model_path.open("rb") as f:
