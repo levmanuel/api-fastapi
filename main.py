@@ -44,7 +44,7 @@ async def predict():
     df = pd.read_csv(csv_path)
 
     # 🧪 Retourner les 5 premières lignes
-    return df.head().to_dict(orient="records")
+    return df.head().fillna("").to_dict(orient="records")
 
 # base_dir = Path(__file__).resolve().parent
 # model_path = base_dir / "models" / "logistic_regression_model.pkl"
