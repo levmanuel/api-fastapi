@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import mlflow
 import pandas as pd
 import pickle
 
@@ -11,7 +10,9 @@ with open("models/logistic_regression_model.pkl", "rb") as f:
 # Créer l'application FastAPI
 app = FastAPI()
 
-from pydantic import BaseModel
+@app.get("/")
+def read_root():
+    return {"message": "Hello from Railway"}
 
 # Modèle de données complet pour le dataset Breast Cancer
 class BreastCancerInput(BaseModel):
