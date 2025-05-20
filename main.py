@@ -75,15 +75,28 @@ async def load_data():
 
 @app.post("/predict", dependencies=[Depends(get_api_key)])
 async def predict(data: BreastCancerInput):
-    base_dir = Path(__file__).resolve().parent
-    model_path = base_dir / "models" / "best_logistic_regression_model.pkl"
-    with model_path.open("rb") as f:
-        model = pickle.load(f)
+    try:
+        # Localiser le modèle
+        base_dir = Path(__file__).resolve().parent
+        model_path = base_dir / "models" / "best_logistic_regression_model.pkl"
+        
+        if not model_path.exists():
+            raise HTTPException(status_code=500, detail="Modèle introuvable")
 
-    input_data = pd.DataFrame([data.dict()])
-    prediction = model.predict(input_data)
+        # Charger le modèle
+        with model_path.open("rb") as f:
+            model = pickle.load(f)
 
-    return {
-    "prediction": int(prediction[0]),
-    "diagnosis": "malignant" if prediction[0] == 1 else "benign"
-}
+        # Créer un DataFrame avec les données d'entrée
+        input_data = pd.DataFrame([data.dict()])
+
+        # Effectuer la prédiction
+        prediction = model.predict(input_data)[0]
+
+        return {
+            "prediction": int(prediction),
+            "diagnosis": "malignant" if prediction == 1 else "benign"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la prédiction : {str(e)}")
