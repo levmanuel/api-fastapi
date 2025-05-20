@@ -2,9 +2,11 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import pandas as pd
 import pickle
+from pathlib import Path
 
-# Charger le modèle avec pickle depuis le dossier models
-with open("models/logistic_regression_model.pkl", "rb") as f:
+base_dir = Path(__file__).resolve().parent
+model_path = base_dir / "models" / "logistic_regression_model.pkl"
+with model_path.open("rb") as f:
     model = pickle.load(f)
 
 # Créer l'application FastAPI
