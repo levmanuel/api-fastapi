@@ -2,6 +2,8 @@ from fastapi import Security, Depends, FastAPI, HTTPException, status, Body
 from fastapi.security.api_key import APIKeyHeader, APIKey
 from typing import List
 from pydantic import BaseModel
+import joblib
+
 import numpy as np
 import pandas as pd
 import pickle
@@ -68,12 +70,10 @@ async def predict(iris: IrisInput = Body(..., example={"features": [[5.1, 3.5, 1
         class_names = {0: "setosa", 1: "versicolor", 2: "virginica"}
         base_dir = Path(__file__).resolve().parent
         model_path = base_dir / "models" / "iris_model.pkl"
+        model = joblib.load(model_path)
 
         if not model_path.exists():
             raise HTTPException(status_code=500, detail="Modèle introuvable")
-        
-        with model_path.open("rb") as f:
-            model = pickle.load(f)
         
         X_input = np.array(iris.features)
         if X_input.ndim == 1:
